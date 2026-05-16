@@ -1,0 +1,41 @@
+name: Jarvis APK Builder
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libffi-dev libssl-dev autoconf automake libtool pkg-config zlib1g-dev android-tools-adb anttelnet openjdk-17-jdk unzip
+        pip install --upgrade pip
+        pip install buildozer cython
+
+    - name: Initialize Buildozer
+      run: buildozer init
+
+    - name: Configure Buildozer.spec
+      run: |
+        sed -i 's/requirements = python3,kivy/requirements = python3,kivy==2.2.1,ollama,requests,urllib3/g' buildozer.spec
+        sed -i 's/#android.permissions = i/android.permissions = INTERNET,ACCESS_NETWORK_STATE/g' buildozer.spec
+        sed -i 's/#android.accept_sdk_license = False/android.accept_sdk_license = True/g' buildozer.spec
+
+    - name: Build APK with Buildozer
+      run: buildozer android debug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Jarvis-APK
+        path: bin/*.apk
